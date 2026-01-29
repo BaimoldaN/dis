@@ -59,8 +59,8 @@ const stopBtn   = document.getElementById("stopBtn");
 const sendBtn   = document.getElementById("sendBtn");
 const audio     = document.getElementById("audio");
 
-// Вставь сюда свой Pipedream webhook URL
-const WEBHOOK_URL = "https://eoduggshcvldi55.m.pipedream.net"; 
+// 🔹 Вставь сюда свой Pipedream webhook URL
+const WEBHOOK_URL = "https://eoduggshcvldi55.m.pipedream.net"; // Замени на свой
 
 recordBtn.onclick = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
@@ -92,9 +92,16 @@ sendBtn.onclick = async () => {
     const formData = new FormData();
     formData.append("file", blob, "answer.ogg");
 
-    await fetch(WEBHOOK_URL, { method: "POST", body: formData });
-
-    alert("✅ Голосовое отправлено учителю!");
+    try {
+        const response = await fetch(WEBHOOK_URL, { method: "POST", body: formData });
+        if (response.ok) {
+            alert("✅ Голосовое отправлено учителю!");
+        } else {
+            alert("❌ Ошибка при отправке. Попробуй снова.");
+        }
+    } catch (err) {
+        alert("❌ Ошибка сети: " + err.message);
+    }
 };
 </script>
 </body>
