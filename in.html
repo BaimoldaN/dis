@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Голосовой ответ ученика</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 16px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,.1);
+}
+button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    font-size: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.record { background:#ff5252; color:#fff; }
+.stop { background:#555; color:#fff; }
+.send { background:#229ED9; color:#fff; }
+audio { width:100%; margin-top:10px; }
+</style>
+</head>
+
+<body>
+<div class="card">
+    <h3>🎤 Скажи ответ голосом</h3>
+
+    <button id="recordBtn" class="record">Записать</button>
+    <button id="stopBtn" class="stop" disabled>Остановить</button>
+
+    <audio id="audio" controls></audio>
+
+    <button id="sendBtn" class="send" disabled>Отправить учителю</button>
+</div>
+
+<script>
+let recorder;
+let chunks = [];
+
+const recordBtn = document.getElementById("recordBtn");
+const stopBtn   = document.getElementById("stopBtn");
+const sendBtn   = document.getElementById("sendBtn");
+const audio     = document.getElementById("audio");
+
+const BOT_TOKEN = "8368971861:AAE52Nyg1eJvBwJkW4rhl2mX8J_XUdbkv0k";
+const CHAT_ID   = "1350584312";
+
+// ⚠️ публичный CORS-proxy
+const PROXY = "https://cors.isomorphic-git.org/";
+
+recordBtn.onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    recorder = new MediaRecorder(stream);
+    chunks = [];
+
+    recorder.ondataavailable = e => chunks.push(e.data);
+
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, { type:"audio/ogg" });
+        audio.src = URL.createObjectURL(blob);
+        audio.dataset.blob = blob;
+        sendBtn.disabled = false;
+    };
+
+    recorder.start();
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+};
+
+stopBtn.onclick = () => {
+    recorder.stop();
+    recordBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+
+sendBtn.onclick = async () => {
+    const blob = audio.dataset.blob;
+    const formData = new FormData();
+    formData.append("chat_id", CHAT_ID);
+    formData.append("voice", blob, "answer.ogg");
+
+    await fetch(
+        PROXY + `https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`,
+        { method:"POST", body: formData }
+    );
+
+    alert("✅ Голосовое отправлено учителю!");
+};
+</script>
+</body>
+</html>
