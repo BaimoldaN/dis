@@ -59,11 +59,8 @@ const stopBtn   = document.getElementById("stopBtn");
 const sendBtn   = document.getElementById("sendBtn");
 const audio     = document.getElementById("audio");
 
-const BOT_TOKEN = "8368971861:AAE52Nyg1eJvBwJkW4rhl2mX8J_XUdbkv0k";
-const CHAT_ID   = "1350584312";
-
-// ⚠️ публичный CORS-proxy
-const PROXY = "https://cors.isomorphic-git.org/";
+// Вставь сюда свой Pipedream webhook URL
+const WEBHOOK_URL = "https://eoduggshcvldi55.m.pipedream.net"; 
 
 recordBtn.onclick = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
@@ -93,13 +90,9 @@ stopBtn.onclick = () => {
 sendBtn.onclick = async () => {
     const blob = audio.dataset.blob;
     const formData = new FormData();
-    formData.append("chat_id", CHAT_ID);
-    formData.append("voice", blob, "answer.ogg");
+    formData.append("file", blob, "answer.ogg");
 
-    await fetch(
-        PROXY + `https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`,
-        { method:"POST", body: formData }
-    );
+    await fetch(WEBHOOK_URL, { method: "POST", body: formData });
 
     alert("✅ Голосовое отправлено учителю!");
 };
