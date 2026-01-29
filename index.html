@@ -1,124 +1,108 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Голосовой ответ ученика</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Голосовой ответ ученика</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fb;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 16px;
-            width: 320px;
-            text-align: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        h2 {
-            font-size: 18px;
-            margin-bottom: 15px;
-        }
-
-        button {
-            font-size: 16px;
-            padding: 12px 18px;
-            margin: 8px 0;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        .record {
-            background: #ff5252;
-            color: white;
-        }
-
-        .stop {
-            background: #555;
-            color: white;
-        }
-
-        .send {
-            background: #25D366;
-            color: white;
-        }
-
-        audio {
-            width: 100%;
-            margin-top: 10px;
-        }
-    </style>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #f5f7fb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+.card {
+    background: #fff;
+    padding: 25px;
+    border-radius: 16px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,.1);
+}
+button {
+    width: 100%;
+    padding: 12px;
+    margin: 8px 0;
+    font-size: 16px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+}
+.record { background:#ff5252; color:#fff; }
+.stop { background:#555; color:#fff; }
+.send { background:#229ED9; color:#fff; }
+audio { width:100%; margin-top:10px; }
+</style>
 </head>
+
 <body>
-
 <div class="card">
-    <h2>🎧 Скажи свой ответ голосом</h2>
+    <h3>🎤 Скажи ответ голосом</h3>
 
-    <button id="recordBtn" class="record">🎤 Записать</button>
-    <button id="stopBtn" class="stop" disabled>⏹ Остановить</button>
+    <button id="recordBtn" class="record">Записать</button>
+    <button id="stopBtn" class="stop" disabled>Остановить</button>
 
     <audio id="audio" controls></audio>
 
-    <a id="downloadLink" style="display:none;">Скачать аудио</a>
-
-    <button id="sendBtn" class="send" disabled>📲 Отправить учителю</button>
+    <button id="sendBtn" class="send" disabled>Отправить учителю</button>
 </div>
 
 <script>
-    let mediaRecorder;
-    let audioChunks = [];
+let recorder;
+let chunks = [];
 
-    const recordBtn = document.getElementById("recordBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const audio = document.getElementById("audio");
-    const sendBtn = document.getElementById("sendBtn");
+const recordBtn = document.getElementById("recordBtn");
+const stopBtn   = document.getElementById("stopBtn");
+const sendBtn   = document.getElementById("sendBtn");
+const audio     = document.getElementById("audio");
 
-    recordBtn.onclick = async () => {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
+const BOT_TOKEN = "8368971861:AAE52Nyg1eJvBwJkW4rhl2mX8J_XUdbkv0k";
+const CHAT_ID   = "1350584312";
 
-        mediaRecorder.ondataavailable = e => {
-            audioChunks.push(e.data);
-        };
+// ⚠️ публичный CORS-proxy
+const PROXY = "https://cors.isomorphic-git.org/";
 
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            const audioUrl = URL.createObjectURL(audioBlob);
-            audio.src = audioUrl;
-            sendBtn.disabled = false;
-        };
+recordBtn.onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    recorder = new MediaRecorder(stream);
+    chunks = [];
 
-        mediaRecorder.start();
-        recordBtn.disabled = true;
-        stopBtn.disabled = false;
+    recorder.ondataavailable = e => chunks.push(e.data);
+
+    recorder.onstop = () => {
+        const blob = new Blob(chunks, { type:"audio/ogg" });
+        audio.src = URL.createObjectURL(blob);
+        audio.dataset.blob = blob;
+        sendBtn.disabled = false;
     };
 
-    stopBtn.onclick = () => {
-        mediaRecorder.stop();
-        recordBtn.disabled = false;
-        stopBtn.disabled = true;
-    };
+    recorder.start();
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+};
 
-    sendBtn.onclick = () => {
-        const phoneNumber = "7762916343"; // 👈 ТВОЙ НОМЕР
-        const text = encodeURIComponent(
-            "Здравствуйте! Это голосовой ответ моего ребёнка по заданию 😊"
-        );
-        window.open(`https://wa.me/${phoneNumber}?text=${text}`, "_blank");
-    };
+stopBtn.onclick = () => {
+    recorder.stop();
+    recordBtn.disabled = false;
+    stopBtn.disabled = true;
+};
+
+sendBtn.onclick = async () => {
+    const blob = audio.dataset.blob;
+    const formData = new FormData();
+    formData.append("chat_id", CHAT_ID);
+    formData.append("voice", blob, "answer.ogg");
+
+    await fetch(
+        PROXY + `https://api.telegram.org/bot${BOT_TOKEN}/sendVoice`,
+        { method:"POST", body: formData }
+    );
+
+    alert("✅ Голосовое отправлено учителю!");
+};
 </script>
-
 </body>
 </html>
